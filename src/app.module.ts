@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { join } from 'path';
+import { AuthModule } from './auth/auth.module';
 
 @Module({
   imports: [
@@ -10,6 +11,7 @@ import { join } from 'path';
       autoLoadEntities: true,
       synchronize: true,
     }),
+    AuthModule,
   ],
 
   controllers: [],
