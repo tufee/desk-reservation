@@ -1,0 +1,12 @@
+version: '3.9'
+services:
+  postgres_db:
+    container_name: desk_reservation
+    environment:
+      POSTGRES_DB: ${DB_NAME}
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+    image: postgres:latest
+    ports:
+      - ${DB_PORT}:5432
+    restart: always
