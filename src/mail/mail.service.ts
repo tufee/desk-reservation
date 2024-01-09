@@ -1,13 +1,21 @@
 import { MailerService } from '@nestjs-modules/mailer';
 import { Injectable } from '@nestjs/common';
-import { User } from '../../src/user/entities/user.entity';
+import { AuthService } from 'src/auth/auth.service';
+import { User } from 'src/user/entities/user.entity';
 
 @Injectable()
 export class MailService {
-  constructor(private mailerService: MailerService) {}
+  constructor(
+    private mailerService: MailerService,
+    private authService: AuthService,
+  ) {}
 
-  async sendVerificationLink(user: User, token: string) {
-    const url = `example.com/auth/confirm?token=${token}`;
+  async sendVerificationLink(user: User) {
+    const token = await this.authService.generateVerificationToken({
+      id: user.id,
+    });
+
+    const url = `http://localhost:3000/auth/confirm?token=${token}`;
 
     await this.mailerService.sendMail({
       to: user.email,
