@@ -1,9 +1,10 @@
 import { MailerModule } from '@nestjs-modules/mailer';
 import { HandlebarsAdapter } from '@nestjs-modules/mailer/dist/adapters/handlebars.adapter';
 import { Global, Module } from '@nestjs/common';
-import { MailService } from './mail.service';
-import { join } from 'path';
 import { ConfigService } from '@nestjs/config';
+import { join } from 'path';
+import { AuthModule } from 'src/auth/auth.module';
+import { MailService } from './mail.service';
 
 @Global()
 @Module({
@@ -31,8 +32,10 @@ import { ConfigService } from '@nestjs/config';
       }),
       inject: [ConfigService],
     }),
+    AuthModule,
   ],
   providers: [MailService],
   exports: [MailService],
+  controllers: [],
 })
 export class MailModule {}
