@@ -21,6 +21,6 @@ export class AuthService {
   }
 
   async verifyToken(token: string): Promise<ConfirmEmailDto> {
-    return this.jwtService.verify(token);
+    return this.jwtService.verifyAsync(token);
   }
 }
