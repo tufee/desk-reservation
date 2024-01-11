@@ -1,32 +1,49 @@
 import { HttpException, HttpStatus } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
-import { getRepositoryToken } from '@nestjs/typeorm';
 import { AuthService } from '../auth/auth.service';
+import { MailService } from '../mail/mail.service';
+import { CreateUserDto } from './dto/create-user.dto';
 import { User } from './entities/user.entity';
+import { UserRepository } from './user.repository';
 import { UserService } from './user.service';
 
 describe('UserService', () => {
   let service: UserService;
+  let userRepository: UserRepository;
   let authService: AuthService;
+  let mailService: MailService;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         UserService,
-        AuthService,
         {
-          provide: getRepositoryToken(User),
+          provide: UserRepository,
           useValue: {
-            findOneBy: jest.fn(),
+            findOneByEmail: jest.fn(),
             create: jest.fn(),
             save: jest.fn(),
+          },
+        },
+        {
+          provide: AuthService,
+          useValue: {
+            hashPassword: jest.fn(),
+          },
+        },
+        {
+          provide: MailService,
+          useValue: {
+            sendVerificationLink: jest.fn(),
           },
         },
       ],
     }).compile();
 
     service = module.get<UserService>(UserService);
+    userRepository = module.get<UserRepository>(UserRepository);
     authService = module.get<AuthService>(AuthService);
+    mailService = module.get<MailService>(MailService);
   });
 
   it('should be defined', () => {
@@ -34,91 +51,86 @@ describe('UserService', () => {
   });
 
   describe('create', () => {
-    it('should create a new user', async () => {
-      const createUserDto = {
-        name: 'test',
-        email: 'test@example.com',
-        password: 'password123',
-        passwordConfirmation: 'password123',
-      };
+    const createUserDto: CreateUserDto = {
+      name: 'john',
+      email: 'john@example.com',
+      password: 'password123',
+      passwordConfirmation: 'password456',
+    };
 
-      const user = new User();
-      user.id = 'UUID';
-      user.name = 'test';
-      user.email = 'test@example.com';
-      user.password = 'hashedPassword';
-
+    it('should throw an exception if email is already used', async () => {
       jest
-        .spyOn(service['userRepository'], 'findOneBy')
-        .mockResolvedValue(null);
-
-      jest
-        .spyOn(authService, 'hashPassword')
-        .mockResolvedValue('hashedPassword');
-
-      jest.spyOn(service['userRepository'], 'create').mockReturnValue(user);
-      jest.spyOn(service['userRepository'], 'save').mockResolvedValue(user);
-
-      const result = await service.create(createUserDto);
-
-      expect(result).toBeDefined();
-
-      expect(service['userRepository'].findOneBy).toHaveBeenCalledWith({
-        email: 'test@example.com',
-      });
-
-      expect(authService.hashPassword).toHaveBeenCalledWith('password123');
-
-      expect(service['userRepository'].create).toHaveBeenCalledWith({
-        name: 'test',
-        email: 'test@example.com',
-        password: 'hashedPassword',
-        passwordConfirmation: 'password123',
-      });
-
-      expect(service['userRepository'].save).toHaveBeenCalled();
-    });
-
-    it('should throw an exception for duplicate email', async () => {
-      const createUserDto = {
-        name: 'test',
-        email: 'test@example.com',
-        password: 'password123',
-        passwordConfirmation: 'password123',
-      };
-      const user = new User();
-      user.id = 'UUID';
-      user.name = 'test';
-      user.email = 'test@example.com';
-      user.password = 'hashed';
-
-      jest
-        .spyOn(service['userRepository'], 'findOneBy')
-        .mockResolvedValue(user);
+        .spyOn(userRepository, 'findOneByEmail')
+        .mockResolvedValue(new User());
 
       await expect(service.create(createUserDto)).rejects.toThrow(
         new HttpException('Email already used.', HttpStatus.BAD_REQUEST),
       );
     });
 
-    it('should throw an exception for password mismatch', async () => {
-      const createUserDto = {
-        name: 'test',
-        email: 'test@example.com',
-        password: 'password123',
-        passwordConfirmation: 'differentPassword',
-      };
+    it('should throw an exception if password and confirmation do not match', async () => {
+      jest.spyOn(userRepository, 'findOneByEmail').mockResolvedValue(null);
 
-      jest
-        .spyOn(service['userRepository'], 'findOneBy')
-        .mockResolvedValue(null);
-
-      await expect(service.create(createUserDto)).rejects.toThrowError(
+      await expect(service.create(createUserDto)).rejects.toThrow(
         new HttpException(
           'Password and password confirmation does not match.',
           HttpStatus.BAD_REQUEST,
         ),
       );
+    });
+
+    it('should create a new user when valid data is provided', async () => {
+      const createUserDto = {
+        name: 'john',
+        email: 'john@example.com',
+        password: 'password123',
+        passwordConfirmation: 'password123',
+      };
+
+      const user: User = {
+        name: 'john',
+        email: 'john@example.com',
+        password: 'hashedPassword',
+      } as User;
+
+      const newUser: User = {
+        name: 'john',
+        email: 'john@example.com',
+        password: 'hashedPassword',
+        id: '17dbc3e3-02d9-45ae-99ce-475329fcc8ee',
+        created_at: new Date('2024-01-11T01:34:53.509Z'),
+        updated_at: new Date('2024-01-11T01:34:53.509Z'),
+        email_confirmed: false,
+      };
+
+      jest.spyOn(userRepository, 'findOneByEmail').mockResolvedValue(null);
+
+      jest
+        .spyOn(authService, 'hashPassword')
+        .mockResolvedValue('hashedPassword');
+
+      jest.spyOn(userRepository, 'create').mockReturnValue(user);
+
+      jest.spyOn(userRepository, 'save').mockResolvedValue(newUser);
+
+      await service.create(createUserDto);
+
+      expect(userRepository.findOneByEmail).toHaveBeenCalledWith(
+        createUserDto.email,
+      );
+
+      expect(authService.hashPassword).toHaveBeenCalledWith(
+        createUserDto.password,
+      );
+
+      expect(userRepository.create).toHaveBeenCalledWith({
+        ...createUserDto,
+        password: 'hashedPassword',
+      });
+
+      expect(userRepository.save).toHaveBeenCalledWith(user);
+
+      expect(mailService.sendVerificationLink).toHaveBeenCalledWith(newUser);
     });
   });
 });
