@@ -16,7 +16,7 @@ describe('MailService', () => {
         {
           provide: AuthService,
           useValue: {
-            generateVerificationToken: jest.fn(),
+            generateToken: jest.fn(),
           },
         },
         {
@@ -45,15 +45,14 @@ describe('MailService', () => {
       user.name = 'john';
 
       const token = 'token';
-      jest
-        .spyOn(authService, 'generateVerificationToken')
-        .mockResolvedValue(token);
+      jest.spyOn(authService, 'generateToken').mockResolvedValue(token);
 
       await service.sendVerificationLink(user);
 
-      expect(authService.generateVerificationToken).toHaveBeenCalledWith({
-        id: user.id,
-      });
+      expect(authService.generateToken).toHaveBeenCalledWith(
+        user.id,
+        user.name,
+      );
 
       const url = `http://localhost:3000/auth/confirm?token=${token}`;
 

@@ -11,9 +11,7 @@ export class MailService {
   ) {}
 
   async sendVerificationLink(user: User) {
-    const token = await this.authService.generateVerificationToken({
-      id: user.id,
-    });
+    const token = await this.authService.generateToken(user.id, user.name);
 
     const url = `http://localhost:3000/auth/confirm?token=${token}`;
 
