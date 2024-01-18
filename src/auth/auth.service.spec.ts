@@ -4,7 +4,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { User } from '../user/entities/user.entity';
 import { UserRepository } from '../user/user.repository';
 import { AuthService } from './auth.service';
-import { ConfirmEmailDto } from './dto/confirm-email.dto';
+import { TokenPayloadDto } from './dto/token-payload.dto';
 
 describe('AuthService', () => {
   let service: AuthService;
@@ -81,8 +81,9 @@ describe('AuthService', () => {
   describe('verifyToken', () => {
     it('should verify a token', async () => {
       const token = 'token';
-      const expectedPayload: ConfirmEmailDto = {
+      const expectedPayload: TokenPayloadDto = {
         id: '123',
+        name: 'john',
         iat: 123456789,
         exp: 123456789,
       };
@@ -100,7 +101,7 @@ describe('AuthService', () => {
     it('should return an access token', async () => {
       const user: User = {
         id: 'UUID',
-        name: 'John',
+        name: 'john',
         email: 'email',
         password: 'hashedPassword',
       } as User;

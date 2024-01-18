@@ -2,7 +2,7 @@ import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
 import { UserRepository } from '../user/user.repository';
-import { ConfirmEmailDto } from './dto/confirm-email.dto';
+import { TokenPayloadDto } from './dto/token-payload.dto';
 
 @Injectable()
 export class AuthService {
@@ -24,7 +24,7 @@ export class AuthService {
     return this.jwtService.signAsync({ id, name });
   }
 
-  async verifyToken(token: string): Promise<ConfirmEmailDto> {
+  async verifyToken(token: string): Promise<TokenPayloadDto> {
     return this.jwtService.verifyAsync(token);
   }
 
