@@ -1,5 +1,7 @@
+import { UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { Test, TestingModule } from '@nestjs/testing';
+import { User } from '../user/entities/user.entity';
 import { UserRepository } from '../user/user.repository';
 import { AuthService } from './auth.service';
 import { ConfirmEmailDto } from './dto/confirm-email.dto';
@@ -7,6 +9,7 @@ import { ConfirmEmailDto } from './dto/confirm-email.dto';
 describe('AuthService', () => {
   let service: AuthService;
   let jwtService: JwtService;
+  let userRepository: UserRepository;
 
   beforeEach(async () => {
     jest.resetAllMocks();
@@ -26,6 +29,7 @@ describe('AuthService', () => {
 
     service = module.get<AuthService>(AuthService);
     jwtService = module.get<JwtService>(JwtService);
+    userRepository = module.get<UserRepository>(UserRepository);
   });
 
   it('should be defined', () => {
@@ -89,6 +93,65 @@ describe('AuthService', () => {
 
       expect(jwtService.verifyAsync).toHaveBeenCalledWith(token);
       expect(result).toBe(expectedPayload);
+    });
+  });
+
+  describe('signIn', () => {
+    it('should return an access token', async () => {
+      const user: User = {
+        id: 'UUID',
+        name: 'John',
+        email: 'email',
+        password: 'hashedPassword',
+      } as User;
+
+      const password = 'password';
+      const expectedToken = 'token';
+
+      jest.spyOn(userRepository, 'findOneByEmail').mockResolvedValue(user);
+      jest.spyOn(service, 'compareHash').mockResolvedValue(true);
+      jest.spyOn(service, 'generateToken').mockResolvedValue(expectedToken);
+
+      const result = await service.signIn(user.email, password);
+
+      expect(userRepository.findOneByEmail).toHaveBeenCalledWith(user.email);
+      expect(service.compareHash).toHaveBeenCalledWith(password, user.password);
+      expect(service.generateToken).toHaveBeenCalledWith(user.id, user.name);
+
+      expect(result).toEqual({ access_token: expectedToken });
+    });
+
+    it('should throw an error if user is not found', async () => {
+      const user: User = {
+        email: 'email',
+      } as User;
+
+      const password = 'password';
+
+      jest.spyOn(userRepository, 'findOneByEmail').mockResolvedValue(null);
+
+      await expect(service.signIn(user.email, password)).rejects.toThrow(
+        new UnauthorizedException(),
+      );
+    });
+
+    it('should throw an error if password is incorrect', async () => {
+      const user: User = {
+        email: 'email',
+        password: 'hashedPassword',
+      } as User;
+
+      const password = 'password';
+
+      jest.spyOn(userRepository, 'findOneByEmail').mockResolvedValue(user);
+      jest.spyOn(service, 'compareHash').mockResolvedValue(false);
+
+      await expect(service.signIn(user.email, password)).rejects.toThrow(
+        new UnauthorizedException(),
+      );
+
+      expect(userRepository.findOneByEmail).toHaveBeenCalledWith(user.email);
+      expect(service.compareHash).toHaveBeenCalledWith(password, user.password);
     });
   });
 });
