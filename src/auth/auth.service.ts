@@ -20,8 +20,8 @@ export class AuthService {
     return bcrypt.compare(password, hash);
   }
 
-  async generateToken(id: string, username: string): Promise<string> {
-    return this.jwtService.signAsync({ id, username });
+  async generateToken(id: string, name: string): Promise<string> {
+    return this.jwtService.signAsync({ id, name });
   }
 
   async verifyToken(token: string): Promise<ConfirmEmailDto> {

@@ -1,5 +1,6 @@
 import { JwtService } from '@nestjs/jwt';
 import { Test, TestingModule } from '@nestjs/testing';
+import { UserRepository } from '../user/user.repository';
 import { AuthService } from './auth.service';
 import { ConfirmEmailDto } from './dto/confirm-email.dto';
 
@@ -8,8 +9,19 @@ describe('AuthService', () => {
   let jwtService: JwtService;
 
   beforeEach(async () => {
+    jest.resetAllMocks();
     const module: TestingModule = await Test.createTestingModule({
-      providers: [AuthService, JwtService],
+      providers: [
+        AuthService,
+        JwtService,
+        UserRepository,
+        {
+          provide: UserRepository,
+          useValue: {
+            findOneByEmail: jest.fn(),
+          },
+        },
+      ],
     }).compile();
 
     service = module.get<AuthService>(AuthService);
@@ -48,15 +60,16 @@ describe('AuthService', () => {
     });
   });
 
-  describe('generateVerificationToken', () => {
-    it('should generate a verification token', async () => {
-      const id = { id: '123' };
+  describe('generateToken', () => {
+    it('should generate a token', async () => {
+      const id = '123';
+      const name = 'john';
       const expectedToken = 'token';
       jest.spyOn(jwtService, 'signAsync').mockResolvedValue(expectedToken);
 
-      const result = await service.generateVerificationToken(id);
+      const result = await service.generateToken(id, name);
 
-      expect(jwtService.signAsync).toHaveBeenCalledWith(id);
+      expect(jwtService.signAsync).toHaveBeenCalledWith({ id, name });
       expect(result).toBe(expectedToken);
     });
   });
