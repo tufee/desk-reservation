@@ -31,16 +31,18 @@ export class AuthService {
   async signIn(email: string, password: string) {
     const user = await this.userRepository.findOneByEmail(email);
 
+    if (!user) {
+      throw new UnauthorizedException();
+    }
+
     const isCorrectPassword = await this.compareHash(password, user.password);
 
     if (!isCorrectPassword) {
       throw new UnauthorizedException();
     }
 
-    const payload = { sub: user.id, username: user.name };
-
     return {
-      access_token: await this.jwtService.signAsync(payload),
+      access_token: await this.generateToken(user.id, user.name),
     };
   }
 }
