@@ -11,7 +11,7 @@ export class UserRepository {
     private readonly userRepository: Repository<User>,
   ) {}
 
-  async findOneByEmail(email: string): Promise<User> {
+  async findOneByEmail(email: string): Promise<User> | null {
     return this.userRepository.findOneBy({ email });
   }
 
