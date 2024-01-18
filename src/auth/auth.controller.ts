@@ -1,14 +1,18 @@
 import {
+  Body,
   Controller,
   Get,
+  HttpCode,
   HttpException,
   HttpStatus,
+  Post,
   Query,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { User } from '../user/entities/user.entity';
 import { Repository } from 'typeorm';
+import { User } from '../user/entities/user.entity';
 import { AuthService } from './auth.service';
+import { SignInDto } from './dto/sign-in.dto';
 
 @Controller('auth')
 export class AuthController {
@@ -32,5 +36,11 @@ export class AuthController {
     } catch (error) {
       throw new HttpException('Invalid token', HttpStatus.BAD_REQUEST);
     }
+  }
+
+  @HttpCode(HttpStatus.OK)
+  @Post('login')
+  signIn(@Body() signInDto: SignInDto) {
+    return this.authService.signIn(signInDto.email, signInDto.password);
   }
 }
