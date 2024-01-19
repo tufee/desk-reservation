@@ -25,7 +25,6 @@ export class AuthController {
   @Get('confirm')
   async confirmEmail(@Query('token') token: string) {
     try {
-      // TODO add redirect to login page
       const tokenPayload = await this.authService.verifyToken(token);
 
       await this.userRepository.update(tokenPayload.id, {
