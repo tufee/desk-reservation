@@ -1,5 +1,5 @@
 import { MailerService } from '@nestjs-modules/mailer';
-import { Injectable } from '@nestjs/common';
+import { Inject, Injectable, forwardRef } from '@nestjs/common';
 import { AuthService } from '../auth/auth.service';
 import { User } from '../user/entities/user.entity';
 
@@ -7,6 +7,7 @@ import { User } from '../user/entities/user.entity';
 export class MailService {
   constructor(
     private mailerService: MailerService,
+    @Inject(forwardRef(() => AuthService))
     private authService: AuthService,
   ) {}
 

@@ -5,6 +5,7 @@ import { User } from '../user/entities/user.entity';
 import { UserRepository } from '../user/user.repository';
 import { AuthService } from './auth.service';
 import { TokenPayloadDto } from './dto/token-payload.dto';
+import { MailService } from '../mail/mail.service';
 
 describe('AuthService', () => {
   let service: AuthService;
@@ -22,6 +23,12 @@ describe('AuthService', () => {
           provide: UserRepository,
           useValue: {
             findOneByEmail: jest.fn(),
+          },
+        },
+        {
+          provide: MailService,
+          useValue: {
+            sendVerificationLink: jest.fn(),
           },
         },
       ],

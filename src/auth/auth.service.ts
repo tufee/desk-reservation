@@ -1,14 +1,22 @@
-import { Injectable, UnauthorizedException } from '@nestjs/common';
+import {
+  Inject,
+  Injectable,
+  UnauthorizedException,
+  forwardRef,
+} from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
+import { MailService } from '../mail/mail.service';
 import { UserRepository } from '../user/user.repository';
 import { TokenPayloadDto } from './dto/token-payload.dto';
 
 @Injectable()
 export class AuthService {
   constructor(
-    private readonly jwtService: JwtService,
-    private readonly userRepository: UserRepository,
+    private jwtService: JwtService,
+    private userRepository: UserRepository,
+    @Inject(forwardRef(() => MailService))
+    private mailService: MailService,
   ) {}
 
   async hashPassword(password: string): Promise<string> {
@@ -33,6 +41,10 @@ export class AuthService {
 
     if (!user) {
       throw new UnauthorizedException();
+    }
+
+    if (!user.email_confirmed) {
+      await this.mailService.sendVerificationLink(user);
     }
 
     const isCorrectPassword = await this.compareHash(password, user.password);
