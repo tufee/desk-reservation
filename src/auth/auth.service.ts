@@ -36,15 +36,19 @@ export class AuthService {
     return this.jwtService.verifyAsync(token);
   }
 
-  async signIn(email: string, password: string) {
+  async signIn(
+    email: string,
+    password: string,
+  ): Promise<{ access_token: string }> {
     const user = await this.userRepository.findOneByEmail(email);
 
     if (!user) {
-      throw new UnauthorizedException();
+      throw new UnauthorizedException('Invalid credentials');
     }
 
     if (!user.email_confirmed) {
       await this.mailService.sendVerificationLink(user);
+      throw new UnauthorizedException('Please confirm your email');
     }
 
     const isCorrectPassword = await this.compareHash(password, user.password);
