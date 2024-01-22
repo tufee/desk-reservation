@@ -110,6 +110,7 @@ describe('AuthService', () => {
         id: 'UUID',
         name: 'john',
         email: 'email',
+        email_confirmed: true,
         password: 'hashedPassword',
       } as User;
 
@@ -139,13 +140,29 @@ describe('AuthService', () => {
       jest.spyOn(userRepository, 'findOneByEmail').mockResolvedValue(null);
 
       await expect(service.signIn(user.email, password)).rejects.toThrow(
-        new UnauthorizedException(),
+        new UnauthorizedException('Invalid credentials'),
+      );
+    });
+
+    it('should throw an error if the password has not been confirmed', async () => {
+      const user: User = {
+        email: 'email',
+        email_confirmed: false,
+      } as User;
+
+      const password = 'password';
+
+      jest.spyOn(userRepository, 'findOneByEmail').mockResolvedValue(user);
+
+      await expect(service.signIn(user.email, password)).rejects.toThrow(
+        new UnauthorizedException('Please confirm your email'),
       );
     });
 
     it('should throw an error if password is incorrect', async () => {
       const user: User = {
         email: 'email',
+        email_confirmed: true,
         password: 'hashedPassword',
       } as User;
 
