@@ -5,6 +5,7 @@ import {
   HttpCode,
   HttpException,
   HttpStatus,
+  InternalServerErrorException,
   Post,
   Query,
 } from '@nestjs/common';
@@ -41,5 +42,19 @@ export class AuthController {
   @Post('login')
   async signIn(@Body() signInDto: SignInDto) {
     return await this.authService.signIn(signInDto.email, signInDto.password);
+  }
+
+  @HttpCode(HttpStatus.OK)
+  @Post('forgot-password')
+  async forgotPassword(@Body('email') email: string) {
+    try {
+      await this.authService.forgotPassword(email);
+
+      return {
+        message: 'if the email exists, the reset instructions will be sent',
+      };
+    } catch (error) {
+      throw new InternalServerErrorException();
+    }
   }
 }

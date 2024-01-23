@@ -26,4 +26,20 @@ export class MailService {
       },
     });
   }
+
+  async sendForgotPasswordLink(user: User) {
+    const token = await this.authService.generateToken(user.id, user.name);
+
+    const url = `http://localhost:3000/auth/reset-password/${token}`;
+
+    await this.mailerService.sendMail({
+      to: user.email,
+      subject: 'Desk Reservation | Reset Password',
+      template: './reset-password',
+      context: {
+        name: user.name,
+        url,
+      },
+    });
+  }
 }

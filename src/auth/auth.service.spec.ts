@@ -1,16 +1,17 @@
 import { UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { Test, TestingModule } from '@nestjs/testing';
+import { MailService } from '../mail/mail.service';
 import { User } from '../user/entities/user.entity';
 import { UserRepository } from '../user/user.repository';
 import { AuthService } from './auth.service';
 import { TokenPayloadDto } from './dto/token-payload.dto';
-import { MailService } from '../mail/mail.service';
 
 describe('AuthService', () => {
   let service: AuthService;
   let jwtService: JwtService;
   let userRepository: UserRepository;
+  let mailService: MailService;
 
   beforeEach(async () => {
     jest.resetAllMocks();
@@ -29,6 +30,7 @@ describe('AuthService', () => {
           provide: MailService,
           useValue: {
             sendVerificationLink: jest.fn(),
+            sendForgotPasswordLink: jest.fn(),
           },
         },
       ],
@@ -37,6 +39,7 @@ describe('AuthService', () => {
     service = module.get<AuthService>(AuthService);
     jwtService = module.get<JwtService>(JwtService);
     userRepository = module.get<UserRepository>(UserRepository);
+    mailService = module.get<MailService>(MailService);
   });
 
   it('should be defined', () => {
@@ -177,6 +180,28 @@ describe('AuthService', () => {
 
       expect(userRepository.findOneByEmail).toHaveBeenCalledWith(user.email);
       expect(service.compareHash).toHaveBeenCalledWith(password, user.password);
+    });
+  });
+
+  describe('forgotPassword', () => {
+    it('should send a password reset link when a user is found', async () => {
+      const userMock = { email: 'john@example.com' } as User;
+      jest.spyOn(userRepository, 'findOneByEmail').mockResolvedValue(userMock);
+
+      await expect(
+        service.forgotPassword(userMock.email),
+      ).resolves.toBeUndefined();
+
+      expect(mailService.sendForgotPasswordLink).toHaveBeenCalledWith(userMock);
+    });
+
+    it('should not send a password reset link when a user is not found', async () => {
+      jest.spyOn(userRepository, 'findOneByEmail').mockResolvedValue(null);
+
+      await expect(
+        service.forgotPassword('notfound@example.com'),
+      ).resolves.toBeUndefined();
+      expect(mailService.sendForgotPasswordLink).not.toHaveBeenCalled();
     });
   });
 });

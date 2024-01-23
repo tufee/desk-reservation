@@ -7,6 +7,7 @@ import {
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
 import { MailService } from '../mail/mail.service';
+import { User } from '../user/entities/user.entity';
 import { UserRepository } from '../user/user.repository';
 import { TokenPayloadDto } from './dto/token-payload.dto';
 
@@ -60,5 +61,13 @@ export class AuthService {
     return {
       access_token: await this.generateToken(user.id, user.name),
     };
+  }
+
+  async forgotPassword(email: string): Promise<User | void> {
+    const user = await this.userRepository.findOneByEmail(email);
+
+    if (user) {
+      await this.mailService.sendForgotPasswordLink(user);
+    }
   }
 }

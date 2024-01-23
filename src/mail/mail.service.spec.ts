@@ -23,6 +23,7 @@ describe('MailService', () => {
           provide: MailerService,
           useValue: {
             sendMail: jest.fn(),
+            sendForgotPasswordLink: jest.fn(),
           },
         },
       ],
@@ -63,6 +64,38 @@ describe('MailService', () => {
         context: {
           name: user.name,
           url,
+        },
+      });
+    });
+  });
+
+  describe('sendForgotPasswordLink', () => {
+    it('should send a password reset link', async () => {
+      const userMock = {
+        id: 'UUID',
+        name: 'john',
+        email: 'john@example.com',
+      } as User;
+
+      const tokenMock = 'fakeToken';
+      jest.spyOn(authService, 'generateToken').mockResolvedValue(tokenMock);
+
+      await service.sendForgotPasswordLink(userMock);
+
+      const expectedUrl = `http://localhost:3000/auth/reset-password/${tokenMock}`;
+
+      expect(authService.generateToken).toHaveBeenCalledWith(
+        userMock.id,
+        userMock.name,
+      );
+
+      expect(mailerService.sendMail).toHaveBeenCalledWith({
+        to: userMock.email,
+        subject: 'Desk Reservation | Reset Password',
+        template: './reset-password',
+        context: {
+          name: userMock.name,
+          url: expectedUrl,
         },
       });
     });
