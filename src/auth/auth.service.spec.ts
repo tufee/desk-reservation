@@ -8,10 +8,10 @@ import { AuthService } from './auth.service';
 import { TokenPayloadDto } from './dto/token-payload.dto';
 
 describe('AuthService', () => {
-  let service: AuthService;
-  let jwtService: JwtService;
-  let userRepository: UserRepository;
-  let mailService: MailService;
+  let authServiceMock: AuthService;
+  let jwtServiceMock: JwtService;
+  let userRepositoryMock: UserRepository;
+  let mailServiceMock: MailService;
 
   beforeEach(async () => {
     jest.resetAllMocks();
@@ -36,20 +36,20 @@ describe('AuthService', () => {
       ],
     }).compile();
 
-    service = module.get<AuthService>(AuthService);
-    jwtService = module.get<JwtService>(JwtService);
-    userRepository = module.get<UserRepository>(UserRepository);
-    mailService = module.get<MailService>(MailService);
+    authServiceMock = module.get<AuthService>(AuthService);
+    jwtServiceMock = module.get<JwtService>(JwtService);
+    userRepositoryMock = module.get<UserRepository>(UserRepository);
+    mailServiceMock = module.get<MailService>(MailService);
   });
 
   it('should be defined', () => {
-    expect(service).toBeDefined();
+    expect(authServiceMock).toBeDefined();
   });
 
   describe('hashPassword', () => {
     it('should hash the password', async () => {
       const password = 'password123';
-      const hashedPassword = await service.hashPassword(password);
+      const hashedPassword = await authServiceMock.hashPassword(password);
 
       expect(hashedPassword).toBeDefined();
       expect(hashedPassword).not.toEqual(password);
@@ -59,17 +59,23 @@ describe('AuthService', () => {
   describe('compareHash', () => {
     it('should return true for matching password and hash', async () => {
       const password = 'password123';
-      const hashedPassword = await service.hashPassword(password);
+      const hashedPassword = await authServiceMock.hashPassword(password);
 
-      const result = await service.compareHash(password, hashedPassword);
+      const result = await authServiceMock.compareHash(
+        password,
+        hashedPassword,
+      );
       expect(result).toBe(true);
     });
 
     it('should return false for non-matching password and hash', async () => {
       const password = 'password123';
-      const hashedPassword = await service.hashPassword(password);
+      const hashedPassword = await authServiceMock.hashPassword(password);
 
-      const result = await service.compareHash('wrongPassword', hashedPassword);
+      const result = await authServiceMock.compareHash(
+        'wrongPassword',
+        hashedPassword,
+      );
       expect(result).toBe(false);
     });
   });
@@ -79,11 +85,11 @@ describe('AuthService', () => {
       const id = '123';
       const name = 'john';
       const expectedToken = 'token';
-      jest.spyOn(jwtService, 'signAsync').mockResolvedValue(expectedToken);
+      jest.spyOn(jwtServiceMock, 'signAsync').mockResolvedValue(expectedToken);
 
-      const result = await service.generateToken(id, name);
+      const result = await authServiceMock.generateToken(id, name);
 
-      expect(jwtService.signAsync).toHaveBeenCalledWith({ id, name });
+      expect(jwtServiceMock.signAsync).toHaveBeenCalledWith({ id, name });
       expect(result).toBe(expectedToken);
     });
   });
@@ -98,11 +104,13 @@ describe('AuthService', () => {
         exp: 123456789,
       };
 
-      jest.spyOn(jwtService, 'verifyAsync').mockResolvedValue(expectedPayload);
+      jest
+        .spyOn(jwtServiceMock, 'verifyAsync')
+        .mockResolvedValue(expectedPayload);
 
-      const result = await service.verifyToken(token);
+      const result = await authServiceMock.verifyToken(token);
 
-      expect(jwtService.verifyAsync).toHaveBeenCalledWith(token);
+      expect(jwtServiceMock.verifyAsync).toHaveBeenCalledWith(token);
       expect(result).toBe(expectedPayload);
     });
   });
@@ -120,15 +128,25 @@ describe('AuthService', () => {
       const password = 'password';
       const expectedToken = 'token';
 
-      jest.spyOn(userRepository, 'findOneByEmail').mockResolvedValue(user);
-      jest.spyOn(service, 'compareHash').mockResolvedValue(true);
-      jest.spyOn(service, 'generateToken').mockResolvedValue(expectedToken);
+      jest.spyOn(userRepositoryMock, 'findOneByEmail').mockResolvedValue(user);
+      jest.spyOn(authServiceMock, 'compareHash').mockResolvedValue(true);
+      jest
+        .spyOn(authServiceMock, 'generateToken')
+        .mockResolvedValue(expectedToken);
 
-      const result = await service.signIn(user.email, password);
+      const result = await authServiceMock.signIn(user.email, password);
 
-      expect(userRepository.findOneByEmail).toHaveBeenCalledWith(user.email);
-      expect(service.compareHash).toHaveBeenCalledWith(password, user.password);
-      expect(service.generateToken).toHaveBeenCalledWith(user.id, user.name);
+      expect(userRepositoryMock.findOneByEmail).toHaveBeenCalledWith(
+        user.email,
+      );
+      expect(authServiceMock.compareHash).toHaveBeenCalledWith(
+        password,
+        user.password,
+      );
+      expect(authServiceMock.generateToken).toHaveBeenCalledWith(
+        user.id,
+        user.name,
+      );
 
       expect(result).toEqual({ access_token: expectedToken });
     });
@@ -140,11 +158,11 @@ describe('AuthService', () => {
 
       const password = 'password';
 
-      jest.spyOn(userRepository, 'findOneByEmail').mockResolvedValue(null);
+      jest.spyOn(userRepositoryMock, 'findOneByEmail').mockResolvedValue(null);
 
-      await expect(service.signIn(user.email, password)).rejects.toThrow(
-        new UnauthorizedException('Invalid credentials'),
-      );
+      await expect(
+        authServiceMock.signIn(user.email, password),
+      ).rejects.toThrow(new UnauthorizedException('Invalid credentials'));
     });
 
     it('should throw an error if the password has not been confirmed', async () => {
@@ -155,11 +173,11 @@ describe('AuthService', () => {
 
       const password = 'password';
 
-      jest.spyOn(userRepository, 'findOneByEmail').mockResolvedValue(user);
+      jest.spyOn(userRepositoryMock, 'findOneByEmail').mockResolvedValue(user);
 
-      await expect(service.signIn(user.email, password)).rejects.toThrow(
-        new UnauthorizedException('Please confirm your email'),
-      );
+      await expect(
+        authServiceMock.signIn(user.email, password),
+      ).rejects.toThrow(new UnauthorizedException('Please confirm your email'));
     });
 
     it('should throw an error if password is incorrect', async () => {
@@ -171,37 +189,46 @@ describe('AuthService', () => {
 
       const password = 'password';
 
-      jest.spyOn(userRepository, 'findOneByEmail').mockResolvedValue(user);
-      jest.spyOn(service, 'compareHash').mockResolvedValue(false);
+      jest.spyOn(userRepositoryMock, 'findOneByEmail').mockResolvedValue(user);
+      jest.spyOn(authServiceMock, 'compareHash').mockResolvedValue(false);
 
-      await expect(service.signIn(user.email, password)).rejects.toThrow(
-        new UnauthorizedException(),
+      await expect(
+        authServiceMock.signIn(user.email, password),
+      ).rejects.toThrow(new UnauthorizedException());
+
+      expect(userRepositoryMock.findOneByEmail).toHaveBeenCalledWith(
+        user.email,
       );
-
-      expect(userRepository.findOneByEmail).toHaveBeenCalledWith(user.email);
-      expect(service.compareHash).toHaveBeenCalledWith(password, user.password);
+      expect(authServiceMock.compareHash).toHaveBeenCalledWith(
+        password,
+        user.password,
+      );
     });
   });
 
   describe('forgotPassword', () => {
     it('should send a password reset link when a user is found', async () => {
       const userMock = { email: 'john@example.com' } as User;
-      jest.spyOn(userRepository, 'findOneByEmail').mockResolvedValue(userMock);
+      jest
+        .spyOn(userRepositoryMock, 'findOneByEmail')
+        .mockResolvedValue(userMock);
 
       await expect(
-        service.forgotPassword(userMock.email),
+        authServiceMock.forgotPassword(userMock.email),
       ).resolves.toBeUndefined();
 
-      expect(mailService.sendForgotPasswordLink).toHaveBeenCalledWith(userMock);
+      expect(mailServiceMock.sendForgotPasswordLink).toHaveBeenCalledWith(
+        userMock,
+      );
     });
 
     it('should not send a password reset link when a user is not found', async () => {
-      jest.spyOn(userRepository, 'findOneByEmail').mockResolvedValue(null);
+      jest.spyOn(userRepositoryMock, 'findOneByEmail').mockResolvedValue(null);
 
       await expect(
-        service.forgotPassword('notfound@example.com'),
+        authServiceMock.forgotPassword('notfound@example.com'),
       ).resolves.toBeUndefined();
-      expect(mailService.sendForgotPasswordLink).not.toHaveBeenCalled();
+      expect(mailServiceMock.sendForgotPasswordLink).not.toHaveBeenCalled();
     });
   });
 });

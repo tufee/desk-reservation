@@ -5,9 +5,9 @@ import { User } from '../user/entities/user.entity';
 import { MailService } from './mail.service';
 
 describe('MailService', () => {
-  let service: MailService;
-  let authService: AuthService;
-  let mailerService: MailerService;
+  let mailServiceMock: MailService;
+  let authServiceMock: AuthService;
+  let mailerServiceMock: MailerService;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -29,13 +29,13 @@ describe('MailService', () => {
       ],
     }).compile();
 
-    service = module.get<MailService>(MailService);
-    authService = module.get<AuthService>(AuthService);
-    mailerService = module.get<MailerService>(MailerService);
+    mailServiceMock = module.get<MailService>(MailService);
+    authServiceMock = module.get<AuthService>(AuthService);
+    mailerServiceMock = module.get<MailerService>(MailerService);
   });
 
   it('should be defined', () => {
-    expect(service).toBeDefined();
+    expect(mailServiceMock).toBeDefined();
   });
 
   describe('sendVerificationLink', () => {
@@ -46,18 +46,18 @@ describe('MailService', () => {
       user.name = 'john';
 
       const token = 'token';
-      jest.spyOn(authService, 'generateToken').mockResolvedValue(token);
+      jest.spyOn(authServiceMock, 'generateToken').mockResolvedValue(token);
 
-      await service.sendVerificationLink(user);
+      await mailServiceMock.sendVerificationLink(user);
 
-      expect(authService.generateToken).toHaveBeenCalledWith(
+      expect(authServiceMock.generateToken).toHaveBeenCalledWith(
         user.id,
         user.name,
       );
 
       const url = `http://localhost:3000/auth/confirm?token=${token}`;
 
-      expect(mailerService.sendMail).toHaveBeenCalledWith({
+      expect(mailerServiceMock.sendMail).toHaveBeenCalledWith({
         to: user.email,
         subject: 'Welcome to Desk Reservation App! Confirm your Email',
         template: './confirmation',
@@ -78,18 +78,18 @@ describe('MailService', () => {
       } as User;
 
       const tokenMock = 'fakeToken';
-      jest.spyOn(authService, 'generateToken').mockResolvedValue(tokenMock);
+      jest.spyOn(authServiceMock, 'generateToken').mockResolvedValue(tokenMock);
 
-      await service.sendForgotPasswordLink(userMock);
+      await mailServiceMock.sendForgotPasswordLink(userMock);
 
       const expectedUrl = `http://localhost:3000/auth/reset-password/${tokenMock}`;
 
-      expect(authService.generateToken).toHaveBeenCalledWith(
+      expect(authServiceMock.generateToken).toHaveBeenCalledWith(
         userMock.id,
         userMock.name,
       );
 
-      expect(mailerService.sendMail).toHaveBeenCalledWith({
+      expect(mailerServiceMock.sendMail).toHaveBeenCalledWith({
         to: userMock.email,
         subject: 'Desk Reservation | Reset Password',
         template: './reset-password',

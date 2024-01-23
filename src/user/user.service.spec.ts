@@ -8,10 +8,10 @@ import { UserRepository } from './user.repository';
 import { UserService } from './user.service';
 
 describe('UserService', () => {
-  let service: UserService;
-  let userRepository: UserRepository;
-  let authService: AuthService;
-  let mailService: MailService;
+  let userServiceMock: UserService;
+  let userRepositoryMock: UserRepository;
+  let authServiceMock: AuthService;
+  let mailServiceMock: MailService;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -40,18 +40,18 @@ describe('UserService', () => {
       ],
     }).compile();
 
-    service = module.get<UserService>(UserService);
-    userRepository = module.get<UserRepository>(UserRepository);
-    authService = module.get<AuthService>(AuthService);
-    mailService = module.get<MailService>(MailService);
+    userServiceMock = module.get<UserService>(UserService);
+    userRepositoryMock = module.get<UserRepository>(UserRepository);
+    authServiceMock = module.get<AuthService>(AuthService);
+    mailServiceMock = module.get<MailService>(MailService);
   });
 
   it('should be defined', () => {
-    expect(service).toBeDefined();
+    expect(userServiceMock).toBeDefined();
   });
 
   describe('create', () => {
-    const createUserDto: CreateUserDto = {
+    const createUserDtoMock: CreateUserDto = {
       name: 'john',
       email: 'john@example.com',
       password: 'password123',
@@ -60,18 +60,18 @@ describe('UserService', () => {
 
     it('should throw an exception if email is already used', async () => {
       jest
-        .spyOn(userRepository, 'findOneByEmail')
+        .spyOn(userRepositoryMock, 'findOneByEmail')
         .mockResolvedValue(new User());
 
-      await expect(service.create(createUserDto)).rejects.toThrow(
+      await expect(userServiceMock.create(createUserDtoMock)).rejects.toThrow(
         new HttpException('Email already used.', HttpStatus.BAD_REQUEST),
       );
     });
 
     it('should throw an exception if password and confirmation do not match', async () => {
-      jest.spyOn(userRepository, 'findOneByEmail').mockResolvedValue(null);
+      jest.spyOn(userRepositoryMock, 'findOneByEmail').mockResolvedValue(null);
 
-      await expect(service.create(createUserDto)).rejects.toThrow(
+      await expect(userServiceMock.create(createUserDtoMock)).rejects.toThrow(
         new HttpException(
           'Password and password confirmation does not match.',
           HttpStatus.BAD_REQUEST,
@@ -80,20 +80,20 @@ describe('UserService', () => {
     });
 
     it('should create a new user when valid data is provided', async () => {
-      const createUserDto = {
+      const createUserDtoMock = {
         name: 'john',
         email: 'john@example.com',
         password: 'password123',
         passwordConfirmation: 'password123',
       };
 
-      const user: User = {
+      const userMock: User = {
         name: 'john',
         email: 'john@example.com',
         password: 'hashedPassword',
       } as User;
 
-      const newUser: User = {
+      const newUserMock: User = {
         name: 'john',
         email: 'john@example.com',
         password: 'hashedPassword',
@@ -103,34 +103,36 @@ describe('UserService', () => {
         email_confirmed: false,
       };
 
-      jest.spyOn(userRepository, 'findOneByEmail').mockResolvedValue(null);
+      jest.spyOn(userRepositoryMock, 'findOneByEmail').mockResolvedValue(null);
 
       jest
-        .spyOn(authService, 'hashPassword')
+        .spyOn(authServiceMock, 'hashPassword')
         .mockResolvedValue('hashedPassword');
 
-      jest.spyOn(userRepository, 'create').mockReturnValue(user);
+      jest.spyOn(userRepositoryMock, 'create').mockReturnValue(userMock);
 
-      jest.spyOn(userRepository, 'save').mockResolvedValue(newUser);
+      jest.spyOn(userRepositoryMock, 'save').mockResolvedValue(newUserMock);
 
-      await service.create(createUserDto);
+      await userServiceMock.create(createUserDtoMock);
 
-      expect(userRepository.findOneByEmail).toHaveBeenCalledWith(
-        createUserDto.email,
+      expect(userRepositoryMock.findOneByEmail).toHaveBeenCalledWith(
+        createUserDtoMock.email,
       );
 
-      expect(authService.hashPassword).toHaveBeenCalledWith(
-        createUserDto.password,
+      expect(authServiceMock.hashPassword).toHaveBeenCalledWith(
+        createUserDtoMock.password,
       );
 
-      expect(userRepository.create).toHaveBeenCalledWith({
-        ...createUserDto,
+      expect(userRepositoryMock.create).toHaveBeenCalledWith({
+        ...createUserDtoMock,
         password: 'hashedPassword',
       });
 
-      expect(userRepository.save).toHaveBeenCalledWith(user);
+      expect(userRepositoryMock.save).toHaveBeenCalledWith(userMock);
 
-      expect(mailService.sendVerificationLink).toHaveBeenCalledWith(newUser);
+      expect(mailServiceMock.sendVerificationLink).toHaveBeenCalledWith(
+        newUserMock,
+      );
     });
   });
 });
